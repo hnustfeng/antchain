@@ -1,0 +1,22 @@
+{
+  "name": "antchainapi",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./check.js"
+  },
+  "dependencies": {
+    "@alipay/mychain": "file:alipay-mychain-0.3.8.tgz",
+    "@alipay/solc": "file:alipay-solc-0.1.12.tgz",
+    "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "form-data": "^4.0.0",
+    "http-errors": "~1.6.3",
+    "jade": "~1.11.0",
+    "morgan": "~1.9.1",
+    "mysql": "^2.18.1",
+    "recursive-fs": "^2.1.0"
+  }
+}

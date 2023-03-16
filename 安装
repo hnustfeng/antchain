@@ -1,0 +1,6 @@
+1、node版本:15.7.0
+2、运行 npm install -force
+    npm i alipay-mychain-0.2.27.tgz --save
+    npm i alipay-solc-0.1.12.tgz -g
+3、user.sql为所需要的数据库表
+4、核心代码在routes/antchain.js中
