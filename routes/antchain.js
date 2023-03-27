@@ -440,72 +440,57 @@ router.post('/mint',function(req,res,next){
             conn.release();
             res.end
         }else{
-            let sql = "select * from user where phonenumber = '" + req.body.toUser + "'";
-            console.log(sql);
-            conn.query(sql,function(err,result){
+            let opt = {
+                host: '121.40.249.148',    //目标区块链网络节点的 IP
+                port: 18130,          //端口号
+                timeout: 30000,       //连接超时时间配置
+                cert: fs.readFileSync("./src/client.crt", { encoding: "utf8" }),
+                ca: fs.readFileSync("./src/ca.crt", { encoding: "utf8" }),
+                key: fs.readFileSync("./src/client.key", { encoding: "utf8" }),
+                userPublicKey: keyInfo.publicKey,
+                userPrivateKey: keyInfo.privateKey,
+                userRecoverPublicKey: keyInfo.publicKey,
+                userRecoverPrivateKey: keyInfo.privateKey,
+                passphrase: passphrase
+            }
+            
+            //初始化一个连接实例
+            const chain = Chain(opt)
+        
+            const contract = fs.readFileSync('./src/contract.sol', {encoding: 'ascii'})
+            // console.log(contract);
+            // 第二个参数设定为"1"，会开启编译优化 optimiser
+            const output = solc.compile(contract, 1)
+            const abi = JSON.parse(output.contracts[':AssetSample'].interface)
+            const bytecode = output.contracts[':AssetSample'].bytecode
+        
+            // 带上时间戳，防止合约名计算哈希后已存在
+            const contractName = req.body.contractName
+            // 初始化一个合约实例
+            let myContract = chain.ctr.contract(contractName, abi) 
+            // myContract.mint(Chain.utils.getHash('test'),5,{from:'test'},(err,output,data)=>{
+            //     console.log('output is :',output);
+            // })
+            var toUser = 'user' + req.body.toUser;
+            myContract.mint(Chain.utils.getHash(toUser),req.body.value,{from:'test'},(err,output,data)=>{
                 if(err){
-                    console.log('[SELECT ERROR] - ',err);
-                    res.send({"code":400,"message":"数据库查询错误！","data":err})
-
+                    res.send({"code":400,"message":"mint失败！","data":err.output})
                     res.end
+                }else{
+                    console.log(data.receipt.log_entry[1].log_data);
+                    console.log(data.receipt.log_entry[1].log_data[1].toNumber());
+                    console.log(data.receipt.log_entry[1].log_data[2].toNumber());
+                    let tokenId = [];
+                    for(i = 0;i<data.receipt.log_entry[1].log_data[1].toNumber();i++){
+                        tokenId.push(data.receipt.log_entry[1].log_data[2].toNumber() - i)
                     }
-                    if(!result[0]){
-                        res.send({"code":400,"message":"用户手机号不存在！","data":""})
-                        res.end
-                    }else{
-                        let opt = {
-                            host: '121.40.249.148',    //目标区块链网络节点的 IP
-                            port: 18130,          //端口号
-                            timeout: 30000,       //连接超时时间配置
-                            cert: fs.readFileSync("./src/client.crt", { encoding: "utf8" }),
-                            ca: fs.readFileSync("./src/ca.crt", { encoding: "utf8" }),
-                            key: fs.readFileSync("./src/client.key", { encoding: "utf8" }),
-                            userPublicKey: keyInfo.publicKey,
-                            userPrivateKey: keyInfo.privateKey,
-                            userRecoverPublicKey: keyInfo.publicKey,
-                            userRecoverPrivateKey: keyInfo.privateKey,
-                            passphrase: passphrase
-                        }
-                        
-                        //初始化一个连接实例
-                        const chain = Chain(opt)
-                    
-                        const contract = fs.readFileSync('./src/contract.sol', {encoding: 'ascii'})
-                        // console.log(contract);
-                        // 第二个参数设定为"1"，会开启编译优化 optimiser
-                        const output = solc.compile(contract, 1)
-                        const abi = JSON.parse(output.contracts[':AssetSample'].interface)
-                        const bytecode = output.contracts[':AssetSample'].bytecode
-                    
-                        // 带上时间戳，防止合约名计算哈希后已存在
-                        const contractName = req.body.contractName
-                        // 初始化一个合约实例
-                        let myContract = chain.ctr.contract(contractName, abi) 
-                        // myContract.mint(Chain.utils.getHash('test'),5,{from:'test'},(err,output,data)=>{
-                        //     console.log('output is :',output);
-                        // })
-                        var toUser = 'user' + req.body.toUser;
-                        myContract.mint(Chain.utils.getHash(toUser),req.body.value,{from:'test'},(err,output,data)=>{
-                            if(err){
-                                res.send({"code":400,"message":"mint失败！","data":err.output})
-                                res.end
-                            }else{
-                                console.log(data.receipt.log_entry[1].log_data);
-                                console.log(data.receipt.log_entry[1].log_data[1].toNumber());
-                                console.log(data.receipt.log_entry[1].log_data[2].toNumber());
-                                let tokenId = [];
-                                for(i = 0;i<data.receipt.log_entry[1].log_data[1].toNumber();i++){
-                                    tokenId.push(data.receipt.log_entry[1].log_data[2].toNumber() - i)
-                                }
-                                res.send({"code":200,"message":"mint成功！","data":output,"tokenid":tokenId,"TxHash":data.txhash})
-                                res.end
-                            }
-                        })
-                    }
+                    res.send({"code":200,"message":"mint成功！","data":output,"tokenid":tokenId,"TxHash":data.txhash})
+                    res.end
+                }
             })
-        }
-        conn.release();
-    })
+            
+    }
+})
 })
 
 router.post('/setBaseURL',function(req,res,next){
