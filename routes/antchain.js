@@ -13,7 +13,7 @@ var pool = mysql.createPool({
   password : '12345678',       
   port: '3306',                   
   database: 'antchain',
-  connectionLimit:200
+  connectionLimit:2000
 }); 
 
 const accountKey = fs.readFileSync("./src/user.pem", { encoding: "utf8" });
@@ -32,6 +32,7 @@ router.post('/aaa', function(req, res, next) {
             res.send({"code":400,"message":"数据库连接失败！"});
             res.end;
         }
+        conn.release();
     })
    console.log("pri:",keyInfo.privateKey.toString('hex'));
    const a = Math.sqrt(req.body.contractName)
@@ -77,6 +78,7 @@ router.post('/createAccount',function(req,res,next){
             pool.getConnection(function(err,conn){
                 if(err){
                     res.send({"code":400,"message":"数据库连接失败！"});
+                    conn.release();
                     res.end;
                 }else{
                     var  sql = "insert into user (name,pubkey,prikey,phonenumber,userhash) values ('" + username + "','" + newKey.privateKey.toString('hex') + "','" + newKey.publicKey.toString('hex') + "','" + req.body.phoneNumber+"','" + Chain.utils.getHash(username) + "')";
@@ -89,10 +91,10 @@ router.post('/createAccount',function(req,res,next){
                         }else{
                             res.send({"code":200,"message":"账号创建成功！","TxHash":data.txhash});
                             res.end;
-                            conn.release();
                         }
                     })
                 }
+                conn.release();
             })
         }else{
             res.send({"code":400,"message":"账号创建失败！"});
@@ -366,7 +368,8 @@ router.post('/ownerOf',function(req,res,next){
 router.post('/approve',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
-            res.send({"code":400,"message":"数据库连接失败！","data":err})
+            res.send({"code":400,"message":"数据库连接失败！","data":err});
+            conn.release();
             res.end
         }else{
             let sql = "select * from user where phonenumber = '" + req.body.phoneNumber + "'";
@@ -375,9 +378,10 @@ router.post('/approve',function(req,res,next){
                 if(err){
                     console.log('[SELECT ERROR] - ',err);
                     res.send({"code":400,"message":"数据库查询错误！","data":err})
+                    conn.release();
                     res.end
                     }
-                    if(!result[0]){
+                if(!result[0]){
                         res.send({"code":400,"message":"用户手机号不存在！","data":""})
                         res.end
                     }else{
@@ -422,10 +426,10 @@ router.post('/approve',function(req,res,next){
                                 res.end
                             }
                         })
-                        conn.release();
                     }
             })
         }
+        conn.release();
     })
 })
 
@@ -433,6 +437,7 @@ router.post('/mint',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
             res.send({"code":400,"message":"数据库连接失败！","data":err})
+            conn.release();
             res.end
         }else{
             let sql = "select * from user where phonenumber = '" + req.body.toUser + "'";
@@ -441,6 +446,7 @@ router.post('/mint',function(req,res,next){
                 if(err){
                     console.log('[SELECT ERROR] - ',err);
                     res.send({"code":400,"message":"数据库查询错误！","data":err})
+
                     res.end
                     }
                     if(!result[0]){
@@ -495,10 +501,10 @@ router.post('/mint',function(req,res,next){
                                 res.end
                             }
                         })
-                        conn.release();
                     }
             })
         }
+        conn.release();
     })
 })
 
@@ -550,6 +556,7 @@ router.post('/transfer',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
             res.send({"code":400,"message":"数据库连接失败！","data":err})
+            conn.release();
         }else{
             let sql = "select * from user where phonenumber = '" + req.body.phoneNumber + "'";
             console.log(sql);
@@ -606,6 +613,8 @@ router.post('/transfer',function(req,res,next){
                     }
             })
         }
+        conn.release()
+   conn.release();
     })
 })
 
@@ -693,6 +702,7 @@ router.post('/test', function(req, res, next) {
                 }
             })
         }
+        conn.release();
     })
 });
 
