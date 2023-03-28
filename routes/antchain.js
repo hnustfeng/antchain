@@ -369,7 +369,6 @@ router.post('/approve',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
             res.send({"code":400,"message":"数据库连接失败！","data":err});
-            conn.release();
             res.end
         }else{
             let sql = "select * from user where phonenumber = '" + req.body.phoneNumber + "'";
@@ -378,7 +377,6 @@ router.post('/approve',function(req,res,next){
                 if(err){
                     console.log('[SELECT ERROR] - ',err);
                     res.send({"code":400,"message":"数据库查询错误！","data":err})
-                    conn.release();
                     res.end
                     }
                 if(!result[0]){
@@ -437,7 +435,6 @@ router.post('/mint',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
             res.send({"code":400,"message":"数据库连接失败！","data":err})
-            conn.release();
             res.end
         }else{
             let opt = {
@@ -541,7 +538,6 @@ router.post('/transfer',function(req,res,next){
     pool.getConnection(function(err,conn){
         if(err){
             res.send({"code":400,"message":"数据库连接失败！","data":err})
-            conn.release();
         }else{
             let sql = "select * from user where phonenumber = '" + req.body.phoneNumber + "'";
             console.log(sql);
@@ -594,12 +590,10 @@ router.post('/transfer',function(req,res,next){
                                 res.send({"code":200,"message":"交易成功！","data":output,"TxHash":data.txhash})
                             }
                         })
-                        conn.release();
                     }
             })
         }
         conn.release()
-   conn.release();
     })
 })
 
@@ -682,8 +676,6 @@ router.post('/test', function(req, res, next) {
                 if(err){
                     res.send({"code":300,"message":"交易shibai"});
                 }else{
-                    res.send(result);
-                    conn.release();
                 }
             })
         }
