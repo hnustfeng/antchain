@@ -59,46 +59,144 @@ router.post('/aaa', function(req, res, next) {
 });
 
 
+// router.post('/createAccount',async function(req,res,next){
+//     const newKey = Chain.utils.generateECKey();
+//     var username = 'user'+req.body.phoneNumber;
+//     chain.ctr.CreateAccount({
+//     from: 'test',
+//     to: username,
+//     data: {
+//         recover_key: '0x'+ newKey.publicKey.toString('hex'),
+//         auth_key: '0x'+ newKey.publicKey.toString('hex'),
+//         auth_weight: 100
+//     }
+//     }, (err, data) => {
+//         if(data.block_number != 0){
+//             pool.getConnection(function(err,conn){
+//                 if(err){
+//                     res.send({"code":400,"message":"数据库连接失败！"});
+//                     conn.release();
+//                     res.end;
+//                 }else{
+//                     var  sql = "insert into user (name,pubkey,prikey,phonenumber,userhash) values ('" + username + "','" + newKey.privateKey.toString('hex') + "','" + newKey.publicKey.toString('hex') + "','" + req.body.phoneNumber+"','" + Chain.utils.getHash(username) + "')";
+//                     console.log(sql);
+//                     conn.query(sql,function(err,result){
+//                         if(err){
+//                                 console.log('[insert ERROR] - ',err.message);
+//                                 res.send({"code":400,"message":"数据库操作失败！"});
+//                                 res.end;
+//                         }else{
+//                             res.send({"code":200,"message":"账号创建成功！","TxHash":data.txhash});
+//                             res.end;
+//                         }
+//                     })
+//                 }
+//                 conn.release();
+//             })
+//         }else{
+//             console.log(data);
+//             res.send({"code":400,"message":"账号创建失败！","err":err});
+//             res.end;
+//         }
+//     })
+// })
+
 router.post('/createAccount',async function(req,res,next){
     const newKey = Chain.utils.generateECKey();
     var username = 'user'+req.body.phoneNumber;
-    chain.ctr.CreateAccount({
-    from: 'test',
-    to: username,
-    data: {
-        recover_key: '0x'+ newKey.publicKey.toString('hex'),
-        auth_key: '0x'+ newKey.publicKey.toString('hex'),
-        auth_weight: 100
-    }
-    }, (err, data) => {
-        if(data.block_number != 0){
-            pool.getConnection(function(err,conn){
-                if(err){
-                    res.send({"code":400,"message":"数据库连接失败！"});
-                    conn.release();
-                    res.end;
-                }else{
-                    var  sql = "insert into user (name,pubkey,prikey,phonenumber,userhash) values ('" + username + "','" + newKey.privateKey.toString('hex') + "','" + newKey.publicKey.toString('hex') + "','" + req.body.phoneNumber+"','" + Chain.utils.getHash(username) + "')";
-                    console.log(sql);
-                    conn.query(sql,function(err,result){
-                        if(err){
-                                console.log('[insert ERROR] - ',err.message);
-                                res.send({"code":400,"message":"数据库操作失败！"});
-                                res.end;
-                        }else{
-                            res.send({"code":200,"message":"账号创建成功！","TxHash":data.txhash});
-                            res.end;
-                        }
-                    })
-                }
-                conn.release();
-            })
+    pool.getConnection(function(err,conn){
+        if(err){
+            res.send({"code":400,"message":"数据库连接失败！","data":err});
+            conn.release();
+            res.end
         }else{
-            console.log(data);
-            res.send({"code":400,"message":"账号创建失败！","err":err});
-            res.end;
+            let sql = "select * from user where phonenumber = '" + req.body.phoneNumber + "'";
+            console.log(sql);
+            conn.query(sql,function(err,result){
+                if(err){
+                    console.log('[SELECT ERROR] - ',err);
+                    res.send({"code":400,"message":"数据库查询错误！","data":err})
+                    conn.release();
+                    res.end
+                    }
+                if(!result[0]){
+                    chain.ctr.CreateAccount({
+                        from: 'test',
+                        to: username,
+                        data: {
+                            recover_key: '0x'+ newKey.publicKey.toString('hex'),
+                            auth_key: '0x'+ newKey.publicKey.toString('hex'),
+                            auth_weight: 100
+                        }
+                        }, (err, data) => {
+                            if(data.block_number != 0){
+                                pool.getConnection(function(err,conn){
+                                   
+                                        var  sql = "insert into user (name,pubkey,prikey,phonenumber,userhash,createhash) values ('" + username + "','" + newKey.privateKey.toString('hex') + "','" + newKey.publicKey.toString('hex') + "','" + req.body.phoneNumber+"','" + Chain.utils.getHash(username) + "','" + data.txhash+"')";
+                                        console.log(sql);
+                                        conn.query(sql,function(err,result){
+                                            if(err){
+                                                    console.log('[insert ERROR] - ',err.message);
+                                                    res.send({"code":400,"message":"数据库操作失败！"});
+                                                    res.end;
+                                            }else{
+                                                res.send({"code":200,"message":"账号创建成功！","TxHash":data.txhash});
+                                                res.end;
+                                            }
+                                        })
+                                })
+                            }else{
+                                console.log(data);
+                                res.send({"code":400,"message":"账号创建失败！","err":err});
+                                res.end;
+                            }
+                        })
+                    }else{
+                        console.log(result);
+                        res.send({"code":200,"message":"账号已创建成功！","TxHash":result[0].txhash});
+                        res.end;
+                    }
+            })
         }
+        conn.release();
     })
+    // chain.ctr.CreateAccount({
+    // from: 'test',
+    // to: username,
+    // data: {
+    //     recover_key: '0x'+ newKey.publicKey.toString('hex'),
+    //     auth_key: '0x'+ newKey.publicKey.toString('hex'),
+    //     auth_weight: 100
+    // }
+    // }, (err, data) => {
+    //     if(data.block_number != 0){
+    //         pool.getConnection(function(err,conn){
+    //             if(err){
+    //                 res.send({"code":400,"message":"数据库连接失败！"});
+    //                 conn.release();
+    //                 res.end;
+    //             }else{
+    //                 var  sql = "insert into user (name,pubkey,prikey,phonenumber,userhash,createhash) values ('" + username + "','" + newKey.privateKey.toString('hex') + "','" + newKey.publicKey.toString('hex') + "','" + req.body.phoneNumber+"','" + Chain.utils.getHash(username) + "','" + data.txhash+"')";
+    //                 console.log(sql);
+    //                 conn.query(sql,function(err,result){
+    //                     if(err){
+    //                             console.log('[insert ERROR] - ',err.message);
+    //                             res.send({"code":400,"message":"数据库操作失败！"});
+    //                             res.end;
+    //                     }else{
+    //                         res.send({"code":200,"message":"账号创建成功！","TxHash":data.txhash});
+    //                         res.end;
+    //                     }
+    //                 })
+    //             }
+    //             conn.release();
+    //         })
+    //     }else{
+    //         console.log(data);
+    //         res.send({"code":400,"message":"账号创建失败！","err":err});
+    //         res.end;
+    //     }
+    // })
 })
 
 router.post('/balanceOf',function(req,res,next){
